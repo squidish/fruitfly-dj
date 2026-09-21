@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Fly DJ — EDM for a fruit fly</title>
+    <meta
+      name="description"
+      content="Play EDM to a connectome-based model of the fruit fly auditory pathway and watch it fail to care."
+    />
+    <meta name="color-scheme" content="dark light" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='21' cy='12' r='6' fill='%23e5352b'/%3E%3Cellipse cx='13' cy='17' rx='9' ry='6' fill='%236c5b46'/%3E%3C/svg%3E" />
+  </head>
+  <body>
+    <a class="skip-link" href="#controls">Skip to controls</a>
+
+    <header class="app-header">
+      <div class="brand">
+        <h1>Fly DJ</h1>
+        <span class="tagline">EDM, played to a fruit fly that cannot hear most of it.</span>
+      </div>
+
+      <div class="header-meta">
+        <span id="circuit-badge" class="badge" title="Which circuit is loaded">loading…</span>
+        <span id="lag-badge" class="badge badge-warn" hidden>brain lag</span>
+        <span id="calib-badge" class="badge badge-info" hidden>recalibrating…</span>
+      </div>
+
+      <div class="gauge-wrap">
+        <div
+          id="approval-gauge"
+          class="gauge"
+          role="meter"
+          aria-label="Fly approval"
+          aria-valuemin="0"
+          aria-valuemax="2"
+          aria-valuenow="0"
+        >
+          <div id="gauge-fill" class="gauge-fill"></div>
+          <span id="gauge-value" class="gauge-value">0.00</span>
+        </div>
+        <p id="status-line" class="status-line" aria-live="polite">Waiting for the fly to wake up</p>
+      </div>
+
+      <div class="transport">
+        <button id="play-btn" class="primary-btn" type="button" aria-pressed="false">Play</button>
+        <button id="about-btn" class="ghost-btn" type="button" aria-expanded="false">About</button>
+      </div>
+    </header>
+
+    <main class="layout" id="layout">
+      <nav class="tabs" role="tablist" aria-label="Panels">
+        <button class="tab active" role="tab" data-tab="stage" aria-selected="true">Fly</button>
+        <button class="tab" role="tab" data-tab="graph" aria-selected="false">Graph</button>
+        <button class="tab" role="tab" data-tab="raster" aria-selected="false">Raster</button>
+        <button class="tab" role="tab" data-tab="hear" aria-selected="false">Hear</button>
+        <button class="tab" role="tab" data-tab="ipi" aria-selected="false">IPI</button>
+        <button class="tab" role="tab" data-tab="compare" aria-selected="false">Compare</button>
+        <button class="tab" role="tab" data-tab="cloud" aria-selected="false" hidden>3D</button>
+      </nav>
+
+      <section class="panel panel-stage" data-panel="stage" aria-label="Dance floor">
+        <div id="dance-floor" class="dance-floor"></div>
+        <div id="fly-stage" class="fly-stage"></div>
+        <p id="behaviour-line" class="panel-note" aria-live="polite"></p>
+      </section>
+
+      <section class="panel panel-graph" data-panel="graph">
+        <div class="panel-head">
+          <h2>Circuit</h2>
+          <div class="panel-tools">
+            <button id="graph-mode" class="chip" type="button" aria-pressed="false">Per-neuron</button>
+          </div>
+        </div>
+        <canvas id="graph-canvas" class="plot"></canvas>
+        <p class="panel-note" id="graph-note"></p>
+      </section>
+
+      <section class="panel panel-hear" data-panel="hear">
+        <div class="panel-head"><h2>What you hear vs what the fly hears</h2></div>
+        <canvas id="hear-canvas" class="plot"></canvas>
+        <p class="panel-note" id="hear-note"></p>
+      </section>
+
+      <section class="panel panel-raster" data-panel="raster">
+        <div class="panel-head">
+          <h2>Spikes</h2>
+          <div class="panel-tools">
+            <button id="raster-mode" class="chip" type="button" aria-pressed="false">Rates</button>
+          </div>
+        </div>
+        <canvas id="raster-canvas" class="plot"></canvas>
+        <p class="panel-note" id="raster-note"></p>
+      </section>
+
+      <section class="panel panel-ipi" data-panel="ipi">
+        <div class="panel-head"><h2>Inter-pulse intervals</h2></div>
+        <canvas id="ipi-canvas" class="plot"></canvas>
+        <p class="panel-note" id="ipi-note"></p>
+      </section>
+
+      <section class="panel panel-compare" data-panel="compare">
+        <div class="panel-head">
+          <h2>Does the wiring matter?</h2>
+          <div class="panel-tools">
+            <button id="compare-btn" class="chip" type="button">Run compare</button>
+          </div>
+        </div>
+        <canvas id="compare-canvas" class="plot"></canvas>
+        <p class="panel-note" id="compare-note"></p>
+      </section>
+
+      <section class="panel panel-cloud" data-panel="cloud" hidden>
+        <div class="panel-head"><h2>Soma cloud</h2></div>
+        <canvas id="cloud-canvas" class="plot"></canvas>
+        <p class="panel-note">Drag to orbit, scroll to zoom. Brightness is firing rate.</p>
+      </section>
+
+      <div class="legend" id="legend" aria-label="Group colours"></div>
+    </main>
+
+    <aside class="drawer" id="drawer">
+      <button id="drawer-toggle" class="drawer-toggle" type="button" aria-expanded="true" aria-controls="controls">
+        Controls
+      </button>
+      <div class="drawer-body">
+        <div id="controls" class="controls"></div>
+        <div class="file-drop" id="file-drop">
+          <p>Drop an audio file here. It is decoded on your machine and never uploaded.</p>
+          <input type="file" id="file-input" accept="audio/*" aria-label="Choose an audio file" />
+        </div>
+        <div id="track-list" class="track-list" hidden></div>
+      </div>
+    </aside>
+
+    <div class="modal" id="about-modal" hidden>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="about-title">
+        <div class="modal-head">
+          <h2 id="about-title">About Fly DJ</h2>
+          <button id="about-close" class="ghost-btn" type="button" aria-label="Close about">Close</button>
+        </div>
+        <div id="about-body" class="modal-body"></div>
+      </div>
+    </div>
+
+    <div class="gate" id="start-gate"></div>
+    <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

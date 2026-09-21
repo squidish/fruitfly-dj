@@ -1,0 +1,102 @@
+# Which cell types go in which group.
+#
+# Names are matched against the annotation columns in the FlyWire Codex export
+# (cell_type, hemibrain_type, cell_class, ...). Matching is case-insensitive and
+# ignores spaces, underscores and hyphens, so "AMMC-B1", "ammc_b1" and "AMMC B1"
+# are the same string as far as the extractor is concerned.
+#
+# VERIFY THESE AGAINST YOUR OWN EXPORT. Codex annotations change between
+# releases, and a name that resolved last year may not resolve today. The
+# extractor logs every type as found, missing or ambiguous precisely so you can
+# see which ones need editing rather than discovering it in the browser.
+#
+# `aliases` are alternative spellings for the same functional type; any one of
+# them matching is enough.
+
+version: 1
+
+# Expansion: how far downstream of the seed types to follow the graph.
+expansion:
+  hops: 3
+  # Ignore connections weaker than this many synapses.
+  min_syn: 5
+  # Also take one hop of lateral (same-group) connections.
+  lateral: true
+  # Hard cap on circuit size. Above this, the weakest-connected neurons are
+  # pruned and the pruning is logged.
+  max_neurons: 3000
+
+# Shiu et al. (Nature, 2024) convention. Anything not listed gets sign 0,
+# contributes no weight, and is reported in the summary.
+transmitters:
+  acetylcholine: 1
+  ach: 1
+  gaba: -1
+  glutamate: -1
+  glut: -1
+  glu: -1
+
+groups:
+  sensor:
+    # Johnston's organ. A and B are the vibration-sensitive classes that carry
+    # the courtship-song carrier; C and E are deflection-sensitive.
+    types:
+      - JO-A
+      - JO-B
+      - JO-C
+      - JO-E
+    aliases:
+      JO-A: [JO_A, JOA, "Johnston's organ A", JO-AB]
+      JO-B: [JO_B, JOB]
+      JO-C: [JO_C, JOC]
+      JO-E: [JO_E, JOE, JO-CE]
+
+  relay1:
+    # Antennal mechanosensory and motor centre.
+    types:
+      - AMMC-B1
+      - AMMC-A1
+      - aPN1
+      - AMMC-LN
+    aliases:
+      AMMC-B1: [B1, AMMC_B1, B1-neuron]
+      aPN1: [APN1, aPN1a, aPN1b]
+      AMMC-LN: [AMMC-LN1, AMMC_LN]
+
+  relay2:
+    # Wedge and adjacent VLP.
+    types:
+      - WED-VLP
+      - vPN1
+      - WED-PN
+      - WED-LN
+    aliases:
+      vPN1: [VPN1, vPN1a]
+      WED-VLP: [WED_VLP, WEDPN, WED-PN1]
+
+  song:
+    # Song-responsive higher-order neurons.
+    types:
+      - pC2l
+      - pC2m
+      - vpoEN
+      - vpoIN
+    aliases:
+      pC2l: [pC2_l, PC2L, pC2-l]
+      pC2m: [pC2_m, PC2M, pC2-m]
+      vpoEN: [vpoEN1, VPOEN]
+      vpoIN: [VPOIN]
+
+  groom:
+    # Antennal grooming pathway.
+    types:
+      - aBN1
+      - aBN2
+      - aBN3
+      - aBN-LN
+    aliases:
+      aBN1: [ABN1, aBN1a]
+      aBN2: [ABN2]
+      aBN-LN: [aBN_LN, ABNLN]
+
+# Everything reached by expansion but not named above lands in "other".
