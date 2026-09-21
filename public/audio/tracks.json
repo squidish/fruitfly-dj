@@ -1,0 +1,5 @@
+{
+  "$comment": "Add an entry here for every audio file in public/audio/. `npm run check-tracks` fails the build if a file has no entry, or has one with a licence outside the allowed list. See TRACKS.md for where to find music that qualifies.",
+  "allowedLicences": ["CC0", "CC BY 4.0", "CC BY 3.0", "CC BY-SA 4.0", "Pixabay Content License"],
+  "tracks": []
+}

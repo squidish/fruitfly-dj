@@ -1,0 +1,113 @@
+<!--
+  An original stylised Drosophila. Deliberately not modelled on any existing
+  mascot or character: chunky abdominal banding, oversized compound eyes and
+  feathered aristae, drawn flat with a limited palette.
+
+  Every moving part is its own <g> with a documented pivot. rig.ts composes the
+  transforms (translate(pivot) rotate translate(-pivot)) rather than relying on
+  transform-box, which browsers still disagree about for SVG.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 180" id="fly-svg" role="img"
+     aria-label="A cartoon fruit fly with red compound eyes, feathered antennae, two wings and six legs.">
+  <style>
+    /* The leg paths are strokes, not shapes. Without this they default to
+       fill:black + stroke:none and render as solid triangles. */
+    #fly-svg .leg path {
+      fill: none;
+      /* Mid-brown, not near-black: the legs have to read against the dark
+         dance floor as well as the light one. */
+      stroke: #6b5738;
+      stroke-width: 4.6;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    #fly-svg .leg .tarsus { stroke-width: 3; }
+  </style>
+  <defs>
+    <linearGradient id="fly-thorax" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6c5b46"/>
+      <stop offset="1" stop-color="#3b3125"/>
+    </linearGradient>
+    <linearGradient id="fly-abdomen" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c8a35d"/>
+      <stop offset="1" stop-color="#6d5326"/>
+    </linearGradient>
+    <radialGradient id="fly-eye" cx="0.35" cy="0.3" r="0.8">
+      <stop offset="0" stop-color="#ff8a7a"/>
+      <stop offset="0.45" stop-color="#e5352b"/>
+      <stop offset="1" stop-color="#8d140f"/>
+    </radialGradient>
+    <linearGradient id="fly-wing" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#eaf4ff" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#b8d4f0" stop-opacity="0.16"/>
+    </linearGradient>
+  </defs>
+
+  <g id="fly-root">
+    <!-- Shadow on the dance floor. Pivot: none. -->
+    <ellipse id="fly-shadow" cx="112" cy="150" rx="56" ry="9" fill="#000" opacity="0.28"/>
+
+    <g id="fly-body">
+      <!-- Legs. Pivots are the coxae, where each leg meets the thorax.
+           The far (right) set is drawn first and lighter, so the two sides
+           read as depth rather than as twelve legs. -->
+      <g id="leg-b-r" class="leg" opacity="0.62"><path d="M100 104 L74 122 L54 130" /><path class="tarsus" d="M54 130 L46 136" /></g>
+      <g id="leg-m-r" class="leg" opacity="0.62"><path d="M122 108 L116 132 L96 140" /><path class="tarsus" d="M96 140 L88 145" /></g>
+      <g id="leg-f-r" class="leg" opacity="0.62"><path d="M144 106 L162 124 L154 140" /><path class="tarsus" d="M154 140 L160 146" /></g>
+      <g id="leg-b-l" class="leg"><path d="M96 108 L66 130 L46 142" /><path class="tarsus" d="M46 142 L36 147" /></g>
+      <g id="leg-m-l" class="leg"><path d="M118 112 L106 138 L84 148" /><path class="tarsus" d="M84 148 L74 151" /></g>
+      <g id="leg-f-l" class="leg"><path d="M140 110 L150 134 L136 148" /><path class="tarsus" d="M136 148 L140 154" /></g>
+
+      <!-- Wings. Pivots at the wing hinges on the thorax. -->
+      <!-- The outer group is the rig's; the inner one holds the resting fan,
+           which would otherwise be overwritten every frame. -->
+      <g id="wing-r"><g transform="rotate(9 124 66)">
+        <ellipse cx="80" cy="58" rx="45" ry="13" fill="url(#fly-wing)" stroke="#dbe9f7" stroke-opacity="0.26" stroke-width="1"/>
+        <path d="M122 62 Q90 54 30 58" fill="none" stroke="#cfe0f2" stroke-opacity="0.26" stroke-width="0.9"/>
+      </g></g>
+      <g id="wing-l"><g transform="rotate(-7 120 54)">
+        <ellipse cx="74" cy="42" rx="48" ry="16" fill="url(#fly-wing)" stroke="#dbe9f7" stroke-opacity="0.42" stroke-width="1"/>
+        <path d="M116 44 Q84 32 24 36" fill="none" stroke="#cfe0f2" stroke-opacity="0.38" stroke-width="0.9"/>
+        <path d="M114 50 Q86 46 32 46" fill="none" stroke="#cfe0f2" stroke-opacity="0.3" stroke-width="0.8"/>
+      </g></g>
+
+      <!-- Abdomen, with the banding that makes it read as a fruit fly. -->
+      <g id="abdomen">
+        <ellipse cx="66" cy="92" rx="44" ry="29" fill="url(#fly-abdomen)"/>
+        <path d="M44 68 Q40 92 44 116" fill="none" stroke="#2f2718" stroke-width="7" stroke-linecap="round" opacity="0.85"/>
+        <path d="M66 65 Q62 92 66 119" fill="none" stroke="#2f2718" stroke-width="8" stroke-linecap="round" opacity="0.85"/>
+        <path d="M88 68 Q85 92 88 116" fill="none" stroke="#2f2718" stroke-width="7" stroke-linecap="round" opacity="0.8"/>
+        <ellipse cx="60" cy="80" rx="20" ry="9" fill="#f0d79b" opacity="0.22"/>
+      </g>
+
+      <!-- Thorax. -->
+      <g id="thorax">
+        <ellipse cx="124" cy="88" rx="36" ry="28" fill="url(#fly-thorax)"/>
+        <path d="M104 68 Q124 62 144 70" fill="none" stroke="#8a765a" stroke-width="3" opacity="0.6" stroke-linecap="round"/>
+        <circle cx="112" cy="76" r="2.2" fill="#1e1913" opacity="0.7"/>
+        <circle cx="124" cy="72" r="2.2" fill="#1e1913" opacity="0.7"/>
+        <circle cx="136" cy="76" r="2.2" fill="#1e1913" opacity="0.7"/>
+      </g>
+
+      <!-- Head. Pivot: the neck, at (152, 86). -->
+      <g id="head">
+        <circle cx="172" cy="82" r="24" fill="#4a3d2c"/>
+        <ellipse id="eye-far" cx="180" cy="70" rx="13" ry="12" fill="url(#fly-eye)"/>
+        <ellipse id="eye-near" cx="176" cy="92" rx="14" ry="13" fill="url(#fly-eye)"/>
+        <circle cx="176" cy="66" r="3.4" fill="#fff" opacity="0.75"/>
+        <circle cx="171" cy="88" r="3.8" fill="#fff" opacity="0.7"/>
+        <path d="M166 104 Q174 112 184 104" fill="none" stroke="#2b2216" stroke-width="3" stroke-linecap="round"/>
+
+        <!-- Aristae. Pivots at the antennal bases. -->
+        <g id="antenna-l">
+          <path d="M172 60 Q182 44 196 36" fill="none" stroke="#2b2216" stroke-width="3" stroke-linecap="round"/>
+          <path d="M180 50 L174 42 M186 44 L181 35 M192 39 L188 30" stroke="#2b2216" stroke-width="1.6" stroke-linecap="round"/>
+        </g>
+        <g id="antenna-r">
+          <path d="M180 58 Q194 48 208 46" fill="none" stroke="#2b2216" stroke-width="3" stroke-linecap="round"/>
+          <path d="M190 52 L186 43 M197 49 L194 40 M204 47 L202 38" stroke="#2b2216" stroke-width="1.6" stroke-linecap="round"/>
+        </g>
+      </g>
+    </g>
+  </g>
+</svg>

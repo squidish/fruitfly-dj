@@ -1,0 +1,31 @@
+{
+  "name": "fly-dj",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Play EDM to a connectome-based model of the fruit fly auditory pathway and watch it fail to care.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run check-tracks && tsc --noEmit && vite build",
+    "preview": "vite preview --port 4173 --strictPort",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "bench": "tsx scripts/bench.ts",
+    "tune": "tsx scripts/tune.ts",
+    "check-tracks": "tsx scripts/checkTracks.ts",
+    "toy": "python3 tools/make_toy_circuit.py --out public/data --seed 1",
+    "smoke": "tsx scripts/smoke.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "playwright": "^1.63.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vite": "^7.1.5",
+    "vitest": "^4.0.0"
+  },
+  "dependencies": {
+    "tone": "^15.0.4"
+  }
+}
