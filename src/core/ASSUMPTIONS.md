@@ -145,8 +145,15 @@ because sensor rate rises too.
 The dance is an **artistic mapping** of network activity onto a rig. It is not
 simulated motor behaviour, and none of it is derived from the connectome.
 
+- **The fly dances upright, on two legs, with four arms.** Real flies do not
+  stand bipedally, and nothing about this posture is defensible. It is a
+  legibility choice: bipedal reads as *dancing* at a glance, where six-legged
+  reads as scuttling. The six limbs are still all there, just reassigned.
 - Body bob follows fly-band envelope peaks, not the kick. That mismatch is
   intentional and is the most visible part of the joke.
+- Hip sway runs on a free oscillator rather than on the beat. Driving the sway
+  and the bob from the same signal reads as a twitch; letting the sway drift
+  underneath the bob reads as keeping time.
 - Male unilateral wing extension is real courtship behaviour, rendered
   cartoonishly.
 - The **female wing shimmer is invented.** Females do not sing. It exists so

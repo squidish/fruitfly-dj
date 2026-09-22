@@ -9,6 +9,10 @@
  * The body bobs to fly-band envelope peaks, NOT to the kick. That distinction
  * is the entire point: when four-on-the-floor is playing, the fly is visibly
  * out of time with the music, because it cannot hear the part you are hearing.
+ *
+ * The fly dances upright, on two legs, with four arms. A real fly does not,
+ * and that is a deliberate trade: bipedal reads as dancing at a glance, where
+ * six-legged reads as scuttling. Everything it dances TO is unchanged.
  */
 
 import { neutralPose, type Pose } from './rig.ts';
@@ -45,6 +49,7 @@ export class FlyBehaviour {
   private pose = neutralPose();
   private time = 0;
   private legPhase = 0;
+  private swayPhase = 0;
   private bobEnergy = 0;
   private antennaEnergy = 0;
   private groomTimer = 0;
@@ -78,27 +83,46 @@ export class FlyBehaviour {
     this.bobEnergy *= Math.exp(-dt / (0.16 / rate));
     this.antennaEnergy += (Math.min(1, s.joRate / 45) - this.antennaEnergy) * Math.min(1, dt * 8);
 
-    pose.bob = -this.bobEnergy * 9 * damp;
-    pose.lean = this.bobEnergy * 3.5 * damp;
-    pose.headTilt = this.bobEnergy * 7 * damp * Math.min(1.2, 0.3 + s.approval);
-    pose.abdomen = this.bobEnergy * 4 * damp;
+    const commitment = Math.min(1, s.approval);
+
+    // The sway is a free-running oscillator rather than another beat-follower.
+    // Bobbing and swaying on exactly the same signal reads as a twitch; letting
+    // the sway drift underneath the bob reads as someone keeping time.
+    this.swayPhase += dt * (1.5 + 4.5 * commitment) * rate;
+    const sway = Math.sin(this.swayPhase);
+
+    pose.bob = -this.bobEnergy * 11 * damp;
+    pose.hipSway = sway * (2.5 + 7 * commitment) * damp;
+    pose.lean = sway * (2 + 4 * commitment) * damp + this.bobEnergy * 2 * damp;
+    // Head counter-rotates against the lean, the way a person's does.
+    pose.headTilt = -pose.lean * 0.55 + this.bobEnergy * 6 * damp * Math.min(1.2, 0.3 + s.approval);
+    pose.abdomen = -sway * (3 + 3 * commitment) * damp;
 
     // Antennae vibrate with sensory drive. Fast, but tiny in amplitude.
     pose.antennaVibe =
       this.antennaEnergy * 7 * damp * Math.sin(this.time * 46 * rate) + this.antennaEnergy * 2 * damp;
 
-    // --- legs ---------------------------------------------------------------
+    // --- legs and arms ------------------------------------------------------
     const legSpeed = (1.4 + Math.min(9, s.relayRate / 4)) * rate;
     this.legPhase += dt * legSpeed;
     pose.legPhase = this.legPhase;
-    pose.legSwing = (this.state === 'idle' ? 4 : 9 + 7 * Math.min(1, s.approval)) * damp;
+    pose.legSwing = (this.state === 'idle' ? 2.5 : 5 + 5 * commitment) * damp;
+
+    // Arms ride the same envelope the bob does, so they punch on what the fly
+    // hears rather than on what you hear.
+    pose.armSwing = (4 + 16 * commitment) * damp * (0.45 + this.bobEnergy * 0.9);
+    pose.armRaise = Math.min(1, 0.12 + commitment * 0.95);
 
     // --- grooming -----------------------------------------------------------
     const groomTarget = this.state === 'grooming' ? 1 : 0;
     this.groomBlend += (groomTarget - this.groomBlend) * Math.min(1, dt * 6);
     pose.groom = this.groomBlend;
     if (this.state === 'grooming') {
+      // Stops dancing entirely and cleans its antennae with the upper arms.
       pose.legSwing *= 0.15;
+      pose.armSwing *= 0.12;
+      pose.armRaise = 0;
+      pose.hipSway *= 0.2;
       pose.headTilt += Math.sin(this.time * 9 * rate) * 5 * damp;
     }
 
@@ -164,9 +188,10 @@ export class FlyBehaviour {
     const courting = this.state === 'courting' || this.state === 'breakout';
 
     if (this.state === 'breakout') {
-      const flap = Math.sin(this.time * 34 * rate) * 26;
-      pose.wingLeft = -32 + flap;
-      pose.wingRight = 30 - flap;
+      // Both wings out and beating: the only time this fly actually flies.
+      const flap = Math.sin(this.time * 34 * rate) * 20;
+      pose.wingLeft = 34 + flap;
+      pose.wingRight = 34 - flap;
       pose.wingShimmer = 0;
       return;
     }
@@ -177,17 +202,19 @@ export class FlyBehaviour {
         this.wingTimer = 0;
         this.wingSide *= -1;
       }
-      const extend = 42 * damp * Math.min(1, s.approval);
-      pose.wingLeft = this.wingSide > 0 ? -extend : 0;
+      // One wing out at a time, alternating sides. Positive on either side
+      // means "outward"; the rig mirrors it.
+      const extend = 38 * damp * Math.min(1, s.approval);
+      pose.wingLeft = this.wingSide > 0 ? extend : 0;
       pose.wingRight = this.wingSide > 0 ? 0 : extend;
       pose.wingShimmer = Math.sin(this.time * 60 * rate) * 1.6 * damp;
       return;
     }
 
     if (courting && s.sex === 'female') {
-      pose.wingLeft = -4 * damp;
-      pose.wingRight = 4 * damp;
-      pose.wingShimmer = Math.sin(this.time * 52 * rate) * 2.4 * damp;
+      pose.wingLeft = 11 * damp;
+      pose.wingRight = 11 * damp;
+      pose.wingShimmer = Math.sin(this.time * 52 * rate) * 3.6 * damp;
       return;
     }
 
@@ -226,7 +253,7 @@ export class FlyBehaviour {
     }
 
     if (this.state === 'grooming') {
-      pose.x += (pose.x > 0 ? -1 : 1) * 0;
+      // Stops where it is.
       pose.facing = this.facing;
       return;
     }
