@@ -144,6 +144,9 @@ looking for — and is routed to the ear but never to the speakers.
   as raster dots. The limiter is unit-tested.
 - **Motion.** `prefers-reduced-motion` damps every animation amplitude and
   disables the breakout flight loop.
+- **The fly is bipedal on purpose.** It stands upright and dances like a
+  person, which no fly does. Bipedal reads as dancing; six-legged reads as
+  scuttling. Noted in `ASSUMPTIONS.md` along with everything else invented.
 - **Access.** All controls are keyboard operable and labelled, focus is always
   visible, and light and dark themes follow `prefers-color-scheme`.
 - **Loudness.** The generator starts quiet and the fly's own voice is
