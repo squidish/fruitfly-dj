@@ -80,6 +80,26 @@ async function main(): Promise<void> {
       } as Probe;
     });
 
+  /**
+   * Peak approval over a few seconds.
+   *
+   * Approval is a smoothed live value and every preset delivers its pulses in
+   * trains with gaps, so a single instantaneous read samples whatever phase of
+   * the cycle it happens to land in -- the same preset measured 0.58 and 0.96
+   * on consecutive runs. The peak over a window is what "does the fly get into
+   * this" actually means.
+   */
+  const readPeak = async (seconds: number): Promise<Probe> => {
+    let best = await read();
+    const until = Date.now() + seconds * 1000;
+    while (Date.now() < until) {
+      await page.waitForTimeout(400);
+      const next = await read();
+      if (next.approval > best.approval) best = next;
+    }
+    return best;
+  };
+
   const setPreset = async (preset: string) => {
     await page.selectOption('#ctl-preset', preset);
     await page.waitForTimeout(400);
@@ -95,13 +115,13 @@ async function main(): Promise<void> {
 
   // --- the joke -----------------------------------------------------------
   await setPreset('fourOnTheFloor');
-  await page.waitForTimeout(6000);
-  const edm = await read();
+  await page.waitForTimeout(4000);
+  const edm = await readPeak(3);
   ok.push(`Four on the Floor: A=${edm.approval.toFixed(3)} — "${edm.status}"`);
 
   await setPreset('courtshipRiddim');
-  await page.waitForTimeout(8000);
-  const riddim = await read();
+  await page.waitForTimeout(5000);
+  const riddim = await readPeak(4);
   ok.push(`Courtship Riddim:  A=${riddim.approval.toFixed(3)} — "${riddim.status}"`);
 
   if (riddim.approval > Math.max(0.3, edm.approval * 3)) {
@@ -113,6 +133,14 @@ async function main(): Promise<void> {
   // --- clock --------------------------------------------------------------
   if (/audio latency/.test(riddim.behaviour)) ok.push(`behaviour line live: ${riddim.behaviour}`);
   else fail.push('behaviour line never updated — the render loop may not be receiving frames');
+
+  // --- drum and bass ------------------------------------------------------
+  await setPreset('rollers174');
+  await page.waitForTimeout(5000);
+  const dnb = await readPeak(5);
+  ok.push(`Rollers 174:       A=${dnb.approval.toFixed(3)} — "${dnb.status}"`);
+  if (dnb.approval > 0.6) ok.push('the fly is into drum and bass');
+  else fail.push(`Rollers 174 approval ${dnb.approval.toFixed(3)} did not clear 0.6`);
 
   // --- auto-fit on Bass Rolls --------------------------------------------
   await setPreset('bassRolls');
