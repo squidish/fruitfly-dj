@@ -160,6 +160,12 @@ looking for — and is routed to the ear but never to the speakers.
 Static hosting, nothing else required. `.github/workflows/pages.yml` runs the
 tests and publishes to GitHub Pages on every push to `main`.
 
+**One-time setup.** Pages has to be switched on by hand before the first
+deploy: **Settings → Pages → Build and deployment → Source → GitHub Actions**.
+The workflow cannot do this for you — creating a Pages site needs repo-admin
+scope, and the workflow's `GITHUB_TOKEN` can only deploy to a site that already
+exists. Re-run the workflow afterwards and it publishes.
+
 For any other host, build with the subpath it will be served from:
 
 ```bash
