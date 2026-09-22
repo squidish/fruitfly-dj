@@ -11,7 +11,7 @@
  */
 
 import * as Tone from 'tone';
-import { DEFAULT_GENERATOR, grid, type GeneratorSettings } from './patterns.ts';
+import { DEFAULT_GENERATOR, RIM_MODE_RATIO, grid, type GeneratorSettings } from './patterns.ts';
 import { Rng, deriveSeed } from '../core/rng.ts';
 
 export class Generator {
@@ -32,7 +32,9 @@ export class Generator {
   private pipTimer: number | null = null;
   private pipAt = 0;
   private pipsLeft = 0;
+  private pipIndex = 0;
   private pipGain: GainNode | null = null;
+  private noise: AudioBuffer | null = null;
   private rng = new Rng(deriveSeed(1, 'courtship-live'));
 
   constructor(ctx: AudioContext, destination: AudioNode) {
@@ -95,8 +97,23 @@ export class Generator {
       new Tone.Loop((time) => {
         if (this.settings.kick === 'off') return;
         const beat = Math.round(transport.ticks / transport.PPQ) % 4;
+        const eighth = Tone.Time('8n').toSeconds();
+
+        if (this.settings.kick === 'twoStep') {
+          // Kick on 1 and the "and" of 3, snare on 3. Without this branch a
+          // two-step preset falls through to a kick on every beat, which at
+          // 174 BPM is a wall of sub -- and the fly's gain control, which
+          // follows broadband peak, turns everything else down to compensate.
+          if (beat === 0) this.kick?.triggerAttackRelease('C1', '8n', time);
+          if (beat === 2) {
+            this.kick?.triggerAttackRelease('C1', '8n', time + eighth);
+            if (this.settings.snareRolls) this.snare?.triggerAttackRelease('16n', time);
+          }
+          return;
+        }
+
         if (this.settings.kick === 'broken' && beat === 2) {
-          this.kick?.triggerAttackRelease('C1', '8n', time + Tone.Time('8n').toSeconds());
+          this.kick?.triggerAttackRelease('C1', '8n', time + eighth);
           return;
         }
         this.kick?.triggerAttackRelease('C1', '8n', time);
@@ -112,7 +129,8 @@ export class Generator {
 
     this.parts.push(
       new Tone.Loop((time) => {
-        if (!this.settings.snareRolls) return;
+        // The two-step branch places its own snare, on 3 rather than 2 and 4.
+        if (!this.settings.snareRolls || this.settings.kick === 'twoStep') return;
         this.snare?.triggerAttackRelease('16n', time);
       }, '2n').start('4n'),
     );
@@ -147,7 +165,7 @@ export class Generator {
     // The courtship scheduler is not on the transport, so switching presets
     // mid-playback has to start and stop it explicitly.
     if (this.started) {
-      if (this.settings.courtship) this.startPips();
+      if (this.settings.pulses) this.startPips();
       else this.stopPips();
     }
   }
@@ -160,17 +178,25 @@ export class Generator {
     }
   }
 
-  /** Retune the live courtship pips when f_c, target IPI or fly size change. */
-  setCourtship(fc: number, ipi: number): void {
-    if (!this.settings.courtship) return;
-    this.settings = { ...this.settings, courtship: { ...this.settings.courtship, fc, ipi } };
+  /**
+   * Retune the live pulse train when f_c, target IPI or fly size change.
+   *
+   * Only Courtship Riddim follows the fly: its whole job is to be exactly what
+   * the fly wants. Rollers 174 keeps its own tempo, because a drum and bass
+   * roll that silently retunes itself to the fly is no longer drum and bass,
+   * and the point of that preset is that real music happens to land close.
+   */
+  setPulses(fc: number, ipi: number): void {
+    const p = this.settings.pulses;
+    if (!p || p.timbre !== 'pip') return;
+    this.settings = { ...this.settings, pulses: { ...p, fc, ipi } };
   }
 
   start(): void {
     if (!this.ready || this.started) return;
     this.started = true;
     Tone.getTransport().start();
-    if (this.settings.courtship) this.startPips();
+    if (this.settings.pulses) this.startPips();
   }
 
   stop(): void {
@@ -198,25 +224,79 @@ export class Generator {
   }
 
   private schedulePips(): void {
-    const c = this.settings.courtship;
+    const c = this.settings.pulses;
     if (!c || !this.pipGain) return;
     const horizon = this.ctx.currentTime + 0.25;
     let guard = 0;
-    while (this.pipAt < horizon && guard++ < 128) {
+    while (this.pipAt < horizon && guard++ < 160) {
       if (this.pipsLeft <= 0) {
-        // Short trains separated by gaps, the way real song is delivered.
+        // Short trains separated by gaps: how song is delivered, and how a
+        // drum and bass roll is edited.
         this.pipsLeft = c.trainMin + this.rng.int(Math.max(1, c.trainMax - c.trainMin + 1));
+        this.pipIndex = 0;
         this.pipAt += c.gap;
         continue;
       }
-      this.pip(this.pipAt, c.fc);
+      const amp = c.level;
+      if (c.timbre === 'rim') this.rim(this.pipAt, c.fc, amp);
+      else this.pip(this.pipAt, c.fc, amp);
+      this.pipIndex++;
       this.pipsLeft--;
       this.pipAt += c.ipi;
     }
     if (this.pipAt < this.ctx.currentTime) this.pipAt = this.ctx.currentTime + 0.05;
   }
 
-  private pip(at: number, fc: number): void {
+  /**
+   * A rimshot: body tone at the carrier plus a short noise stick. Musically a
+   * drum; to the ear model, a pulse at f_c, because the stick is too brief and
+   * too broadband to survive the band-pass.
+   */
+  private rim(at: number, fc: number, amp: number): void {
+    if (!this.pipGain) return;
+    // Two body modes, matching addRim() in patterns.ts. The second one is not
+    // decoration: it is most of the in-band energy, and leaving it out here
+    // made the live preset far quieter to the fly than the offline render.
+    for (const [ratio, level] of [
+      [1, 0.55],
+      [RIM_MODE_RATIO, 0.47],
+    ] as const) {
+      const osc = this.ctx.createOscillator();
+      const body = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = fc * ratio;
+      body.gain.setValueAtTime(amp * level, at);
+      body.gain.exponentialRampToValueAtTime(0.0001, at + 0.03);
+      osc.connect(body).connect(this.pipGain);
+      osc.start(at);
+      osc.stop(at + 0.04);
+    }
+
+    const stick = this.ctx.createBufferSource();
+    stick.buffer = this.noiseBuffer();
+    const hp = this.ctx.createBiquadFilter();
+    hp.type = 'highpass';
+    hp.frequency.value = 2500;
+    const stickGain = this.ctx.createGain();
+    stickGain.gain.setValueAtTime(amp * 0.3, at);
+    stickGain.gain.exponentialRampToValueAtTime(0.0001, at + 0.012);
+    stick.connect(hp).connect(stickGain).connect(this.pipGain);
+    stick.start(at);
+    stick.stop(at + 0.02);
+  }
+
+  /** One short noise buffer, reused for every stick. */
+  private noiseBuffer(): AudioBuffer {
+    if (this.noise) return this.noise;
+    const len = Math.round(this.ctx.sampleRate * 0.05);
+    const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+    const data = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) data[i] = this.rng.float() * 2 - 1;
+    this.noise = buf;
+    return buf;
+  }
+
+  private pip(at: number, fc: number, amp = 1): void {
     if (!this.pipGain) return;
     const cycles = 2;
     const dur = Math.max(0.004, cycles / Math.max(20, fc));
@@ -226,7 +306,7 @@ export class Generator {
     osc.frequency.value = fc;
     // Hann-ish window, matching the offline pulse shape.
     env.gain.setValueAtTime(0, at);
-    env.gain.linearRampToValueAtTime(1, at + dur * 0.5);
+    env.gain.linearRampToValueAtTime(amp, at + dur * 0.5);
     env.gain.linearRampToValueAtTime(0, at + dur);
     osc.connect(env).connect(this.pipGain);
     osc.start(at);

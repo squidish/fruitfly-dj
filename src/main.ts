@@ -280,8 +280,12 @@ class App {
 
       case 'autofit':
         if (this.state.autoFit && Number.isFinite(msg.ipi)) {
-          this.setParam('k', msg.k);
-          this.toast(`Auto-fit: ${(msg.ipi * 1000).toFixed(0)} ms beat → fly size ${msg.k.toFixed(2)}x`);
+          if (msg.alreadyFits) {
+            this.toast(`Auto-fit: ${(msg.ipi * 1000).toFixed(0)} ms beat is already in the fly’s range.`);
+          } else {
+            this.setParam('k', msg.k);
+            this.toast(`Auto-fit: ${(msg.ipi * 1000).toFixed(0)} ms beat → fly size ${msg.k.toFixed(2)}x`);
+          }
         }
         break;
 
@@ -498,7 +502,7 @@ class App {
     const generator = this.engine.generator;
     if (generator) {
       generator.setSettings(toGeneratorSettings(this.state));
-      generator.setCourtship(Number(this.state.fc) / k, Number(this.state.targetIpi) * k);
+      generator.setPulses(Number(this.state.fc) / k, Number(this.state.targetIpi) * k);
     }
   }
 
