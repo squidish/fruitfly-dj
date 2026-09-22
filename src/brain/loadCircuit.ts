@@ -16,10 +16,24 @@ export interface LoadedCircuit {
   warnings: string[];
 }
 
-/** Pure decode step, shared by the browser loader and the Node harness. */
+/** Decode a base64 payload to bytes. `atob` exists on the main thread and in workers. */
+function base64ToBuffer(b64: string): ArrayBuffer {
+  const binary = atob(b64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes.buffer;
+}
+
+/**
+ * Pure decode step, shared by the browser loader and the Node harness.
+ *
+ * `edgesBuffer` may be null when the metadata carries the edges inline as
+ * base64. Some static hosts refuse to serve an arbitrary binary file at all,
+ * and a single self-contained JSON is the way to run there.
+ */
 export function decodeCircuit(
   metaJson: unknown,
-  edgesBuffer: ArrayBuffer,
+  edgesBuffer: ArrayBuffer | null,
   seed: number,
   channels: number,
 ): Circuit {
@@ -27,7 +41,9 @@ export function decodeCircuit(
   if (!meta || !Array.isArray(meta.neurons) || meta.neurons.length === 0) {
     throw new Error('circuit meta has no neurons');
   }
-  const edges = parseEdgesBin(edgesBuffer);
+  const buffer = meta.edgesBase64 ? base64ToBuffer(meta.edgesBase64) : edgesBuffer;
+  if (!buffer) throw new Error('circuit has neither an edges file nor inline edges');
+  const edges = parseEdgesBin(buffer);
   for (let i = 0; i < edges.pre.length; i++) {
     if (edges.pre[i] >= meta.neurons.length || edges.post[i] >= meta.neurons.length) {
       throw new Error(`edge ${i} references a neuron outside the circuit`);
@@ -36,19 +52,23 @@ export function decodeCircuit(
   return buildCircuit(meta, edges, seed, channels);
 }
 
-async function fetchPair(base: string, prefix: string): Promise<[unknown, ArrayBuffer]> {
-  const [metaRes, edgeRes] = await Promise.all([
-    fetch(`${base}data/${prefix}.meta.json`),
-    fetch(`${base}data/${prefix}.edges.bin`),
-  ]);
+async function fetchPair(base: string, prefix: string): Promise<[unknown, ArrayBuffer | null]> {
+  const metaRes = await fetch(`${base}data/${prefix}.meta.json`);
   if (!metaRes.ok) throw new Error(`${prefix}.meta.json: HTTP ${metaRes.status}`);
+  const meta = (await metaRes.json()) as CircuitMeta;
+
+  // Inline edges mean there is no second file to go and get.
+  if (meta.edgesBase64) return [meta, null];
+
+  const edgeRes = await fetch(`${base}data/${prefix}.edges.bin`);
   if (!edgeRes.ok) throw new Error(`${prefix}.edges.bin: HTTP ${edgeRes.status}`);
-  return [await metaRes.json(), await edgeRes.arrayBuffer()];
+  return [meta, await edgeRes.arrayBuffer()];
 }
 
 /**
- * Try the real circuit, fall back to the toy one. `base` is Vite's BASE_URL so
- * this works under a GitHub Pages subpath.
+ * Try the real circuit, fall back to the toy one. `base` must be an ABSOLUTE
+ * URL: a worker resolves fetch against its own script URL, not the document,
+ * so a relative base would look for the circuit inside assets/.
  */
 export async function loadCircuit(base: string, seed: number, channels: number): Promise<LoadedCircuit> {
   const warnings: string[] = [];
