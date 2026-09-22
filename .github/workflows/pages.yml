@@ -46,11 +46,12 @@ jobs:
         env:
           BASE_PATH: /${{ github.event.repository.name }}/
 
-      # enablement: true turns Pages on the first time this runs, so there is
-      # no manual settings step before the first deploy.
+      # No `enablement: true` here. Creating a Pages site needs repo-admin
+      # scope, which the workflow GITHUB_TOKEN does not have -- it can deploy
+      # to an existing Pages site but cannot create one, and asking it to fails
+      # with "Resource not accessible by integration". Pages must be turned on
+      # once by hand: Settings -> Pages -> Source -> GitHub Actions.
       - uses: actions/configure-pages@v5
-        with:
-          enablement: true
 
       - uses: actions/upload-pages-artifact@v3
         with:
