@@ -1,5 +1,8 @@
 # Fly DJ
 
+**[Try it → squidish.github.io/fruitfly-dj](https://squidish.github.io/fruitfly-dj/)**
+— works on a phone; tap "Wake the fly" to start.
+
 A browser app that plays EDM to a connectome-based model of the fruit fly's
 auditory pathway, visualises the neural response live, and shows a cartoon fly
 dancing as much as its brain allows.
@@ -154,11 +157,16 @@ looking for — and is routed to the ear but never to the speakers.
 
 ## Deploying
 
-Static hosting, nothing else required. For GitHub Pages under a project path:
+Static hosting, nothing else required. `.github/workflows/pages.yml` runs the
+tests and publishes to GitHub Pages on every push to `main`.
+
+For any other host, build with the subpath it will be served from:
 
 ```bash
 BASE_PATH=/your-repo/ npm run build
 ```
+
+`BASE_PATH` is the only thing in the project that knows about hosting.
 
 `SharedArrayBuffer` is deliberately not used anywhere, because it needs
 COOP/COEP headers that plain static hosting cannot set.
@@ -167,7 +175,7 @@ COOP/COEP headers that plain static hosting cannot set.
 
 | Symptom | Cause |
 |---|---|
-| Silence on iPhone | The hardware silent switch mutes Web Audio. The app handles the `interrupted` context state and resumes on `visibilitychange`, but it cannot override the switch. |
+| Silence on iPhone | **Check the hardware silent switch first** — it mutes Web Audio. The app handles the `interrupted` context state and resumes on `visibilitychange`, but it cannot override the switch. |
 | Visuals ahead of the sound | They should not be — the renderer follows the output timestamp. If they are, check the behaviour line under the fly; it reports measured audio latency. |
 | "brain lag" badge | The worker fell behind and coarsened its own timestep to 1 ms × k. Audio never stalls; the simulation just gets less precise. |
 | Approval stuck at zero | Probably correct. Check the **What you hear vs what the fly hears** panel: if the envelope trace is flat, there is nothing in the fly's band. |
