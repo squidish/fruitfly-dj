@@ -43,13 +43,16 @@ without a gesture) and you are running.
    sits at zero and the status line says so.
 2. Switch to **Courtship Riddim**. Approval jumps past 1.0, the wings come out,
    and the raster fills with clean pulse trains.
-3. Switch to **Bass Rolls** and turn on **Auto-fit**. The fly resizes itself to
+3. Switch to **Rollers 174**. Drum and bass, and the fly is into it — a
+   32nd-note snare roll at 174 BPM lands 43 ms apart, against a 35 ms target.
+   Real music, no rigging, approval around 0.8.
+4. Switch to **Bass Rolls** and turn on **Auto-fit**. The fly resizes itself to
    about 3.35× — a 16th note at 128 BPM is 117 ms, which is 3.35 courtship
    inter-pulse intervals — and starts to care.
-4. Press **Compare wirings**. The last 10 seconds are re-run through the real
+5. Press **Compare wirings**. The last 10 seconds are re-run through the real
    wiring, a degree-preserving shuffle, and sensors-wired-straight-to-song. The
    panel says what it found, including when the answer is unflattering.
-5. Open **About** for the full list of modelling assumptions.
+6. Open **About** for the full list of modelling assumptions.
 
 ## How it works
 

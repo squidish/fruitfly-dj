@@ -136,6 +136,8 @@ export interface AutoFitMessage {
   k: number;
   /** Median fly-band inter-peak interval that produced it. */
   ipi: number;
+  /** True when the beat was already inside the fly's passband and k was left alone. */
+  alreadyFits?: boolean;
 }
 
 export interface IpiStatsMessage {

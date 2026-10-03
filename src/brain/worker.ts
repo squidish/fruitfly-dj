@@ -335,6 +335,21 @@ function runCompare(): void {
   post({ type: 'compare', results, seconds: replay.n / earRate });
 }
 
+/**
+ * Fly size is already close enough when the music's beat is within this factor
+ * of the target interval, in either direction.
+ *
+ * Resizing is not free. Fly size moves the hearing band as well as the
+ * preferred interval, so buying a better interval match always costs a worse
+ * frequency match -- and Auto-fit cannot see that half of the trade, because
+ * it only measures intervals. When the interval is already inside the tuning
+ * curve's passband, the frequency cost dominates and resizing makes things
+ * worse. Drum and bass is the case that exposed this: a 32nd-note roll at
+ * 174 BPM is 43 ms against a 35 ms target, and "fixing" that 1.23x discrepancy
+ * drags the hearing band off the snare body and silences the fly completely.
+ */
+const AUTOFIT_DEADBAND = 1.4;
+
 function runAutoFit(): void {
   if (!sim || !state) return;
   const intervals = sim.recentEnvelopeIntervals(8);
@@ -344,6 +359,10 @@ function runAutoFit(): void {
     return;
   }
   const raw = m / Number(state.targetIpi);
+  if (raw > 1 / AUTOFIT_DEADBAND && raw < AUTOFIT_DEADBAND) {
+    post({ type: 'autofit', k: Number(state.k), ipi: m, alreadyFits: true });
+    return;
+  }
   const k = Math.min(8, Math.max(1, Math.round(raw / 0.05) * 0.05));
   post({ type: 'autofit', k: Number(k.toFixed(2)), ipi: m });
 }

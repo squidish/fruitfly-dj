@@ -42,6 +42,18 @@ import { IpiPlot } from './viz/ipiPlot.ts';
 import { Raster } from './viz/raster.ts';
 import { prefersReducedMotion, renderLegend } from './viz/theme.ts';
 
+/**
+ * The app's asset base, resolved to an absolute URL.
+ *
+ * Vite's BASE_URL can be relative (`./`) when the build does not know its
+ * final path. A relative base is fine on the main thread, where it resolves
+ * against the document, but a Web Worker resolves `fetch` against its OWN
+ * script URL -- which lives in assets/ -- so `./data/...` becomes
+ * `assets/data/...` and the circuit silently 404s. Resolving once here keeps
+ * the app working under an absolute base, a subpath, or a relative base.
+ */
+const ASSET_BASE = new URL(import.meta.env.BASE_URL, window.location.href).href;
+
 const $ = <T extends HTMLElement>(id: string): T => {
   const el = document.getElementById(id);
   if (!el) throw new Error(`missing element #${id}`);
@@ -150,7 +162,7 @@ class App {
     this.worker = worker;
     worker.onmessage = (ev: MessageEvent<FromWorker>) => this.onWorkerMessage(ev.data);
     worker.onerror = (ev) => this.onWorkerCrash(ev.message || 'worker error');
-    this.send({ type: 'init', base: import.meta.env.BASE_URL, config: this.state as Record<string, ParamValue> });
+    this.send({ type: 'init', base: ASSET_BASE, config: this.state as Record<string, ParamValue> });
     // The worklet already holds the other end; hand this one to the worker.
     if (this.pendingPort) {
       worker.postMessage({ type: 'port' }, [this.pendingPort]);
@@ -268,8 +280,12 @@ class App {
 
       case 'autofit':
         if (this.state.autoFit && Number.isFinite(msg.ipi)) {
-          this.setParam('k', msg.k);
-          this.toast(`Auto-fit: ${(msg.ipi * 1000).toFixed(0)} ms beat → fly size ${msg.k.toFixed(2)}x`);
+          if (msg.alreadyFits) {
+            this.toast(`Auto-fit: ${(msg.ipi * 1000).toFixed(0)} ms beat is already in the fly’s range.`);
+          } else {
+            this.setParam('k', msg.k);
+            this.toast(`Auto-fit: ${(msg.ipi * 1000).toFixed(0)} ms beat → fly size ${msg.k.toFixed(2)}x`);
+          }
         }
         break;
 
@@ -486,7 +502,7 @@ class App {
     const generator = this.engine.generator;
     if (generator) {
       generator.setSettings(toGeneratorSettings(this.state));
-      generator.setCourtship(Number(this.state.fc) / k, Number(this.state.targetIpi) * k);
+      generator.setPulses(Number(this.state.fc) / k, Number(this.state.targetIpi) * k);
     }
   }
 
@@ -651,7 +667,7 @@ class App {
   /** The track list is hidden when the manifest is empty. */
   private async loadTracks(): Promise<void> {
     try {
-      const res = await fetch(`${import.meta.env.BASE_URL}audio/tracks.json`);
+      const res = await fetch(`${ASSET_BASE}audio/tracks.json`);
       if (!res.ok) return;
       const manifest = (await res.json()) as { tracks?: TrackEntry[] };
       this.tracks = manifest.tracks ?? [];
@@ -672,7 +688,7 @@ class App {
       btn.textContent = `${track.title} — ${track.artist}`;
       btn.title = track.licence;
       btn.addEventListener('click', async () => {
-        const res = await fetch(`${import.meta.env.BASE_URL}audio/${track.file}`);
+        const res = await fetch(`${ASSET_BASE}audio/${track.file}`);
         await this.engine.loadBuffer(await res.arrayBuffer());
         this.setParam('source', 'track');
       });

@@ -53,6 +53,12 @@ export interface CircuitMeta {
   seed?: number;
   /** True for the toy circuit, whose sex is a knob rather than a fact. */
   sexSelectable?: boolean;
+  /**
+   * The edges file, base64-encoded inline. Lets a circuit ship as one
+   * self-contained JSON on hosts that will not serve an arbitrary binary.
+   * When present it wins over any separate .edges.bin.
+   */
+  edgesBase64?: string;
   neurons: NeuronMeta[];
   notes?: string[];
 }

@@ -119,7 +119,7 @@ export const PARAMS: ParamDef[] = [
     type: 'select',
     default: 'fourOnTheFloor',
     options: PRESET_IDS.map((id) => ({ value: id, label: PRESETS[id].label })),
-    tooltip: 'Three starting points: one the fly ignores, one it loves, and one that needs a bigger fly.',
+    tooltip: 'One the fly ignores, one it loves, one real genre it happens to like, and one that needs a bigger fly.',
   },
   {
     key: 'bpm',
@@ -132,7 +132,7 @@ export const PARAMS: ParamDef[] = [
     step: 1,
     default: 128,
     unit: 'BPM',
-    tooltip: 'Tempo. A 16th note at 128 BPM is 117 ms, about 3.3 courtship inter-pulse intervals.',
+    tooltip: 'Tempo. A 32nd note at 174 BPM is 43 ms, which is close enough to the fly\u2019s 35 ms to count.',
   },
   {
     key: 'kick',
@@ -145,6 +145,7 @@ export const PARAMS: ParamDef[] = [
       { value: 'off', label: 'Off' },
       { value: 'four', label: 'Four on the floor' },
       { value: 'broken', label: 'Broken' },
+      { value: 'twoStep', label: 'Two-step' },
     ],
     tooltip: 'A kick lives around 45-120 Hz, an octave or two below anything the fly can hear.',
   },
